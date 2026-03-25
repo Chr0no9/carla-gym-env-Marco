@@ -7,9 +7,9 @@ import gymnasium as gym
 import gym_carla
 import carla
 from stable_baselines3 import SAC
+from stable_baselines3 import DQN
 
 def main():
-  # parameters for the gym_carla environment
   params = {
     'number_of_vehicles': 1,
     'number_of_walkers': 0,
@@ -32,22 +32,18 @@ def main():
     'out_lane_thres': 2.0,  # threshold for out of lane
     'desired_speed': 8,  # desired speed (m/s)
     'max_ego_spawn_times': 200,  # maximum times to spawn ego vehicle
-    'display_route': False,  # whether to render the desired route
+    'display_route': True,  # whether to render the desired route
   }
+  env = gym.make('carla-v1')
 
-  # Set gym-carla environment
-  env = gym.make('carla-v0', params=params)
+  save_name = "SAC_dist"
 
-  model = SAC("MlpPolicy", env, device="cuda", buffer_size=20000, verbose=1, tensorboard_log="./tensorboard_DQN/")  
-  model = SAC.load("SAC_dist")
-
-  obs, info = env.reset()
+  model = SAC("MlpPolicy", env, device="cuda:1", buffer_size=500, verbose=1, tensorboard_log="./tensorboard_DQN/")
   
-  while True:
-    action, _states = model.predict(obs)
-    obs, reward, terminated, truncated, info = env.step(action)
-    if terminated or truncated:
-        obs, info = env.reset()
+  model.learn(total_timesteps=1000)
+  model.save(save_name)
+  
+  print("Done Training")
 
 if __name__ == '__main__':
   main()
