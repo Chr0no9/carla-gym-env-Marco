@@ -519,7 +519,7 @@ class CarlaEnv(gym.Env):
     reward = self._get_reward()
 
     process_time = datetime.now() - self.dt0
-    sys.stdout.write('\r' + 'FPS: ' + str(round(1.0 / process_time.total_seconds())) + " Dist: " + str(round(dist)) + " Reward: " + str(round(reward)) + " Throttle: " + str(round(throttle, 2)) + " Braking: " + str(round(brake, 2)) + " Steer: " + str(round(steer, 2)) + " 0: " + str(action[0]))
+    sys.stdout.write('\r' + 'FPS: ' + str(round(1.0 / process_time.total_seconds())) + " Dist: " + str(round(dist)) + " Reward: " + str(round(reward)) + " Throttle: " + str(round(throttle, 2)) + " Braking: " + str(round(brake, 2)) + " Steer: " + str(round(steer, 2)) + " Action: " + str(action))
     sys.stdout.flush()
     self.dt0 = datetime.now()
     self.frame += 1
