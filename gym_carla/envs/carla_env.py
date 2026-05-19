@@ -195,7 +195,15 @@ class CarlaEnv(gym.Env):
       params['continuous_steer_range'][0]]), np.array([params['continuous_accel_range'][1],
       params['continuous_steer_range'][1]]), dtype=np.float32)  # acc, steer
 
-    self.observation_space = spaces.Box(low=0, high=255, shape=(786532,), dtype=np.float32)
+    bev_size = self.obs_size * self.obs_size * 3
+    extra_size = 100
+
+    self.observation_space = spaces.Box(
+        low=0,
+        high=255,
+        shape=(bev_size + extra_size,),
+        dtype=np.float32
+    )
 
     # Connect to carla server and get world object
     print('connecting to Carla server...')
@@ -703,6 +711,37 @@ class CarlaEnv(gym.Env):
 
   def _get_obs(self):
     """Get the observations."""
+
+    img = Image.open("lidar_temp_img.png")
+    self.lidar_img = np.array(img)
+
+    lidar_arr = np.zeros((1, self.obs_size, self.obs_size, 3))
+    lidar_arr = lidar_arr.astype(np.float32)
+    lidar_arr[0] = resize(self.lidar_img, (self.obs_size, self.obs_size, 3)) * 255
+
+    next_turn = self.get_turn()
+
+    _, _, dist = get_closest_waypoint(self.route, self.ego.get_location())
+    dist_to_waypoint = np.array([dist])
+    dist_to_waypoint = np.pad(
+        dist_to_waypoint,
+        (0, 49),
+        "constant",
+        constant_values=(0, dist_to_waypoint[0]),
+    )
+
+    turn = np.array([next_turn.value])
+    turn = np.pad(
+        turn,
+        (0, 49),
+        "constant",
+        constant_values=(0, turn[0]),
+    )
+
+    bev = lidar_arr.flatten()
+
+    obs = np.concatenate((bev, turn, dist_to_waypoint))
+    return np.float32(obs)
     ## Birdeye rendering
     # self.birdeye_render.vehicle_polygons = self.vehicle_polygons
     # self.birdeye_render.walker_polygons = self.walker_polygons
@@ -721,17 +760,17 @@ class CarlaEnv(gym.Env):
     # birdeye_surface = rgb_to_display_surface(birdeye, self.display_size)
     # self.display.blit(birdeye_surface, (0, 0))
 
-    img = Image.open("lidar_temp_img.png")
-    self.lidar_img = np.array(img)
-    lidar_arr = np.zeros((1, self.obs_size, self.obs_size, 3))
-    lidar_arr = lidar_arr.astype(np.float32)
-    lidar_arr[0] = resize(self.lidar_img, (self.obs_size, self.obs_size, 3)) * 255
-    # lidar_surface = rgb_to_display_surface(lidar_arr[0], self.display_size)
-    # self.display.blit(lidar_surface, (self.display_size * 1, 0))
+    # img = Image.open("lidar_temp_img.png")
+    # self.lidar_img = np.array(img)
+    # lidar_arr = np.zeros((1, self.obs_size, self.obs_size, 3))
+    # lidar_arr = lidar_arr.astype(np.float32)
+    # lidar_arr[0] = resize(self.lidar_img, (self.obs_size, self.obs_size, 3)) * 255
+    # # lidar_surface = rgb_to_display_surface(lidar_arr[0], self.display_size)
+    # # self.display.blit(lidar_surface, (self.display_size * 1, 0))
 
-    ## Display camera image
-    camera = resize(self.camera_img, (4, self.obs_size, self.obs_size, 3)) * 255
-    camera = camera.astype(np.float32)
+    # ## Display camera image
+    # camera = resize(self.camera_img, (4, self.obs_size, self.obs_size, 3)) * 255
+    # camera = camera.astype(np.float32)
 
     # camera_surface = rgb_to_display_surface(camera[0], self.display_size)
     # self.display.blit(camera_surface, (self.display_size * 3, 0))
@@ -748,27 +787,27 @@ class CarlaEnv(gym.Env):
     # Display on pygame
     # pygame.display.flip()
 
-    obs = {
-      'camera':camera,
-      # 'lidar':lidar_arr,
-      # 'birdeye':birdeye.astype(np.uint8),
-    }
+    # obs = {
+    #   'camera':camera,
+    #   # 'lidar':lidar_arr,
+    #   # 'birdeye':birdeye.astype(np.uint8),
+    # }
     
-    next_turn = self.get_turn()
+    # next_turn = self.get_turn()
     
-    # Distance to closest waypoint
-    _ , _ , dist = get_closest_waypoint(self.route, self.ego.get_location())
-    dist_to_waypoint =  np.array([dist])
-    dist_to_waypoint = np.pad(dist_to_waypoint, (0, 49), 'constant', constant_values=(0, dist_to_waypoint[0]))
+    # # Distance to closest waypoint
+    # _ , _ , dist = get_closest_waypoint(self.route, self.ego.get_location())
+    # dist_to_waypoint =  np.array([dist])
+    # dist_to_waypoint = np.pad(dist_to_waypoint, (0, 49), 'constant', constant_values=(0, dist_to_waypoint[0]))
     
-    # Turn to take
-    turn = np.array([next_turn.value]) 
-    turn = np.pad(turn, (0, 49), 'constant', constant_values=(0, turn[0]))
+    # # Turn to take
+    # turn = np.array([next_turn.value]) 
+    # turn = np.pad(turn, (0, 49), 'constant', constant_values=(0, turn[0]))
     
-    cameras = obs['camera'].flatten()
+    # cameras = obs['camera'].flatten()
 
-    obs = np.concatenate((cameras, turn, dist_to_waypoint))
-    return np.float32(obs)
+    # obs = np.concatenate((cameras, turn, dist_to_waypoint))
+    # return np.float32(obs)
   
   def get_turn(self):
     route = self.route

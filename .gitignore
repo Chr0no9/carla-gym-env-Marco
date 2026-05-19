@@ -1,3 +1,10 @@
 /tensorboard*
 /__pycache__
 *.zip
+venv/
+runs/
+tensorboard/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
